@@ -1,0 +1,212 @@
+﻿@{
+    ViewData["Title"] = "Students";
+}
+
+<h1>Students</h1>
+
+<div>
+    <button class="btn btn-sm btn-primary" style="margin-left: 12px" onclick="showAddModal()">Add</button>
+</div>
+
+<div id="root" class="container"></div>
+
+<div class="modal" id="addModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add student</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div id="addBody" class="modal-body"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="editModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit student</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div id="editBody" class="modal-body"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="modalContainer"></div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            loadStudentList();
+        })
+
+        function loadStudentList() {
+            let root = document.getElementById('root');
+
+            fetch("Student/GetAllStudents", {
+                method: 'GET'
+            })
+            .then(response => {
+                if(response.ok) {
+                    return response.text();
+                }
+            })
+            .then(response => {
+                root.innerHTML = response;
+
+                new DataTable('#studentsTable');
+            })
+        }
+
+        function showAddModal() {
+            fetch('student/add', {
+                method: 'GET'
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.text()
+                }
+            })
+            .then(response => {
+                let addModal = new bootstrap.Modal(document.getElementById('addModal'));
+                let body = document.getElementById('addBody');
+
+                body.innerHTML = response;
+
+                addModal.show();
+            })
+        }
+
+        async function sendAddForm() {
+            let form = document.getElementById('addForm');
+
+            if (form) {
+                const formData = new FormData(form);
+
+                const response = await fetch('student/add/save', {
+                    method: 'POST', 
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+
+                    if(data.success) {
+                        const addModal = bootstrap.Modal.getInstance(document.getElementById('addModal'));
+                        addModal.hide();
+                        loadStudentList();
+                    }
+                }
+            }
+        }
+
+        function showEditModal(id) {
+            fetch(`student/edit/${id}`, {
+                method: 'GET'
+            })
+            .then(response => {
+                if(response.ok)
+                {
+                    return response.text()
+                }
+            })
+            .then(response => {
+                let editModal = new bootstrap.Modal(document.getElementById('editModal'));
+                let body = document.getElementById('editBody');
+
+                body.innerHTML = response;
+
+                editModal.show();
+            });
+        }
+
+        async function sendEditForm() {
+            let form = document.getElementById('editForm');
+
+            if (form) {
+                const formData = new FormData(form);
+
+                const response = await fetch('student/edit/save', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+
+                    if(data.success) {
+                        const editModal = document.getElementById('editModal');
+
+                        const editModalInstance = bootstrap.Modal.getInstance(editModal);
+                        editModalInstance.hide();
+                        loadStudentList();
+                    }
+                }
+            }
+        }
+
+        function showDeleteModal(id) {
+            fetch(`student/delete`, {
+                method: 'POST'
+            })
+            .then(response => {
+                if(response.ok)
+                {
+                    return response.text()
+                }
+            })
+            .then(response => {
+                let modalContainer = document.getElementById('modalContainer');
+
+                modalContainer.innerHTML = response;
+
+                let deleteModal = document.getElementById('deleteModal');
+
+                if(deleteModal) {
+                    let modalDeleteInstance = new bootstrap.Modal(deleteModal);
+
+                    modalDeleteInstance.show();
+
+                    let deleteBtn = document.getElementById('deleteModalBtn');
+
+                    if(deleteBtn) {
+                        deleteBtn.onclick = () => deleteStudent(id);
+                    }
+                }
+            });
+        }
+
+        async function deleteStudent(id) {
+            const response = await fetch(`student/delete/save/${id}`, {
+                method: 'POST'
+            })
+
+            if (response.ok) {
+                const data = await response.json();
+
+                if (data.success) {
+                    const deleteModalInstance = bootstrap.Modal.getInstance(document.getElementById('deleteModal'));
+                    deleteModalInstance.hide();
+                    
+                    const modalContainer = document.getElementById('modalContainer');
+
+                    modalContainer.innerHTML = '';
+                    loadStudentList();
+                }
+            }
+        }
+
+    </script>
+
+    
+    <partial name="_ValidationScriptsPartial" />
+
+}
